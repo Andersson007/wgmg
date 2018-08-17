@@ -81,20 +81,40 @@ class GetAccInfo(object):
     def load_new_ids(self):
         """Check api and load new ids
         """
-        max_new_id_portion = 10
+        max_new_id_portion = 100
         cur_max_id = self.get_max_id()
         next_max_id = cur_max_id + max_new_id_portion
         print(cur_max_id, next_max_id)
 
-        for i in range(cur_max_id, next_max_id):
-            i = str(i)
+        last_live_id = 0
+        last_checked_id = 0
+        while True:
             url = BASE_URL+'account/info/'\
                            '?application_id='+APP_ID+''\
-                           '&account_id='+i+'&fields=nickname'
+                           '&account_id='+str(next_max_id)+''\
+                           '&fields=nickname'
             print(url)
+
             res = self.request_api(url)
-            if res and res['data'][i]:
-                print(res['data'][i])
+            if res and res['data'][str(next_max_id)]:
+                print('found: %s' % next_max_id)
+                last_live_id = next_max_id
+                print('(%s - %s) // 2 = %s' % (next_max_id, cur_max_id, ((next_max_id - cur_max_id) // 2)))
+                next_max_id = cur_max_id + ((next_max_id - cur_max_id) // 2)
+                print(next_max_id)
+            else:
+                print('not found')
+                if last_live_id:
+                    next_max_id = cur_max_id + ((last_live_id - cur_max_id) + ((last_live_id - cur_max_id) // 2))
+                else:
+                    next_max_id = cur_max_id + ((next_max_id - cur_max_id) // 2)
+
+            #if (next_max_id - last_live_id) < 2:
+            #    print('break')
+            #    break
+
+            print(next_max_id)
+
 
     def request_api(self, u):
         # request_time = datetime.datetime.now()
