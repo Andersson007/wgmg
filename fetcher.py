@@ -119,6 +119,7 @@ class StatFetcher(object):
 class StatAccount(object):
     def __init__(self, app_id, acc_id, log, db):
         self.fetcher = StatFetcher(app_id, acc_id, log)
+        self.log = log
         self.stat = {}
         self.db = db
         self.acc_id = acc_id

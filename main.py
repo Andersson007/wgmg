@@ -25,6 +25,8 @@ def parse_cli_args():
                        help="get info for active accounts")
     group.add_argument("-t", "--top", action="store_true",
                        help="get info for top accounts")
+    group.add_argument("-n", "--new", action="store_true",
+                       help="get info for fresh accounts")
     group.add_argument("-V", "--version", action="version",
                        version=__VERSION__, help="show version and exit")
 
@@ -57,6 +59,7 @@ BATTLE_PERIOD = 2592000  # in sec, 30 days
 MIN_BATTLE_NUM = 500
 MIN_WINS = 500
 TOP_LIMIT = 10000
+ID_NUM_LIMIT = 10000
 
 
 class GetAccInfo(object):
@@ -68,6 +71,14 @@ class GetAccInfo(object):
         # we don't count an account if user didn't play
         # for the BATTLE_PERIOD:
         self.tt = datetime.datetime.now().timestamp() - BATTLE_PERIOD
+
+    def get_new_ids(self):
+        """Get fresh account ids
+        """
+        self.get_id_sql = "SELECT a.id FROM %s AS a "\
+                          "WHERE a.created_at = '0' "\
+                          "LIMIT %s" % (W_ACCOUNTS, ID_NUM_LIMIT)
+        self.__get_info()
 
     def get_all_ids(self):
         """Get all accout ids
@@ -83,7 +94,7 @@ class GetAccInfo(object):
                           "WHERE w.battles >= %s "\
                           "AND NOT a.hidden "\
                           "AND a.last_battle_time >= %s" % (
-                              W_ACCOUNTS, W_STAT, MIN_BATTLE_NUM, 
+                              W_ACCOUNTS, W_STAT, MIN_BATTLE_NUM,
                               self.tt)
         self.__get_info()
 
@@ -111,7 +122,7 @@ class GetAccInfo(object):
             exit(1)
 
         acc_num = len(res)
-        print(acc_num)
+        print(acc_num)  # for debug
 
         thread_portion = (acc_num // THREAD_NUM) + 1
 
@@ -145,6 +156,9 @@ def main():
 
     if args.top:
         info.get_top_ids()
+
+    elif args.new:
+        info.get_new_ids()
 
     elif args.active:
         info.get_active_ids()
