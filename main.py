@@ -2,8 +2,10 @@
 
 import argparse
 import datetime
+import json
 import logging
 import subprocess
+import urllib.request as url
 
 import database_lib.database as db
 
@@ -27,6 +29,8 @@ def parse_cli_args():
                        help="get info for top accounts")
     group.add_argument("-n", "--new", action="store_true",
                        help="get info for fresh accounts")
+    group.add_argument("-T", "--test", action="store_true",
+                       help="test code only")
     group.add_argument("-V", "--version", action="version",
                        version=__VERSION__, help="show version and exit")
 
@@ -53,13 +57,15 @@ W_STAT = 'w_statistics'
 
 # Main params:
 THREAD_NUM = 20
+APP_ID = '450cbeb1caaee4965ee516cdeb38d8f1'
+BASE_URL = 'https://api.worldofwarships.ru/wows/'
 
 # Id's selection thresholds:
 BATTLE_PERIOD = 2592000  # in sec, 30 days
 MIN_BATTLE_NUM = 500
 MIN_WINS = 500
 TOP_LIMIT = 10000
-ID_NUM_LIMIT = 10000
+ID_NUM_LIMIT = 100000
 
 
 class GetAccInfo(object):
@@ -71,6 +77,45 @@ class GetAccInfo(object):
         # we don't count an account if user didn't play
         # for the BATTLE_PERIOD:
         self.tt = datetime.datetime.now().timestamp() - BATTLE_PERIOD
+
+    def load_new_ids(self):
+        """Check api and load new ids
+        """
+        max_new_id_portion = 10
+        cur_max_id = self.get_max_id()
+        next_max_id = cur_max_id + max_new_id_portion
+        print(cur_max_id, next_max_id)
+
+        for i in range(cur_max_id, next_max_id):
+            i = str(i)
+            url = BASE_URL+'account/info/'\
+                           '?application_id='+APP_ID+''\
+                           '&account_id='+i+'&fields=nickname'
+            print(url)
+            res = self.request_api(url)
+            if res and res['data'][i]:
+                print(res['data'][i])
+
+    def request_api(self, u):
+        # request_time = datetime.datetime.now()
+        try:
+            response = url.urlopen(u)
+        except Exception as e:
+            self.log.error(e)
+            return False
+
+        # resp_time = datetime.datetime.now() - request_time
+        # self.log.info('Response from WoWSH acc received in %s'
+        #              % resp_time)
+
+        raw_string = response.read().decode('utf-8')
+        return json.loads(raw_string)
+
+    def get_max_id(self):
+        """Get max account id
+        """
+        self.db.do_query("SELECT max(id) FROM %s" % W_ACCOUNTS)
+        return self.db.cursor.fetchone()[0]
 
     def get_new_ids(self):
         """Get fresh account ids
@@ -165,6 +210,9 @@ def main():
 
     elif args.full:
         info.get_all_ids()
+
+    elif args.test:
+        info.load_new_ids()
 
 
 if __name__ == '__main__':

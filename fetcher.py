@@ -95,14 +95,14 @@ class StatFetcher(object):
                                 '&fields='+ACC_FIELDS
 
     def get_acc_stat(self):
-        request_time = datetime.datetime.now()
+        # request_time = datetime.datetime.now()
         try:
             response = url.urlopen(self.ACC_URL)
         except Exception as e:
             self.log.error(e)
             return False
 
-        resp_time = datetime.datetime.now() - request_time
+        # resp_time = datetime.datetime.now() - request_time
         # self.log.info('Response from WoWSH acc received in %s'
         #              % resp_time)
 
