@@ -65,7 +65,7 @@ BATTLE_PERIOD = 2592000  # in sec, 30 days
 MIN_BATTLE_NUM = 500
 MIN_WINS = 500
 TOP_LIMIT = 10000
-ID_NUM_LIMIT = 100000
+ID_NUM_LIMIT = 1000000
 
 
 class GetAccInfo(object):
@@ -81,39 +81,75 @@ class GetAccInfo(object):
     def load_new_ids(self):
         """Check api and load new ids
         """
-        max_new_id_portion = 100
+        max_new_id_portion = 1000000
         cur_max_id = self.get_max_id()
         next_max_id = cur_max_id + max_new_id_portion
-        print(cur_max_id, next_max_id)
+        saved_max = next_max_id
 
-        last_live_id = 0
-        last_checked_id = 0
+        last_live_id = cur_max_id
+        step = max_new_id_portion // 10
+
+        flag = False
+        cnt = 0
+        print(cur_max_id, next_max_id)
         while True:
+            cnt += 1
+            print(cnt)
             url = BASE_URL+'account/info/'\
                            '?application_id='+APP_ID+''\
                            '&account_id='+str(next_max_id)+''\
                            '&fields=nickname'
-            print(url)
+            #print(url)
 
             res = self.request_api(url)
+            print(res)
             if res and res['data'][str(next_max_id)]:
-                print('found: %s' % next_max_id)
+                if not flag:
+                    step = step - 1
+                    flag = True
+                print('==found==: %s' % next_max_id)
+
                 last_live_id = next_max_id
-                print('(%s - %s) // 2 = %s' % (next_max_id, cur_max_id, ((next_max_id - cur_max_id) // 2)))
-                next_max_id = cur_max_id + ((next_max_id - cur_max_id) // 2)
-                print(next_max_id)
+                #step = step // 2
+                if (next_max_id + step) >= saved_max:
+                    step = step // 2
+
+                next_max_id = next_max_id + step
+
+                print('step: %s' % step)
+                print('next check: %s' % next_max_id)
+                print()
+
             else:
-                print('not found')
-                if last_live_id:
-                    next_max_id = cur_max_id + ((last_live_id - cur_max_id) + ((last_live_id - cur_max_id) // 2))
-                else:
-                    next_max_id = cur_max_id + ((next_max_id - cur_max_id) // 2)
+                print('not found: %s' % next_max_id)
+                if flag:
+                    step -= 1
+                    flag = False
 
-            #if (next_max_id - last_live_id) < 2:
-            #    print('break')
-            #    break
+                if (next_max_id - step) <= last_live_id:
+                    while ((next_max_id - step) <= last_live_id):
+                        step //= 2
 
-            print(next_max_id)
+                #if (next_max_id - step) <= cur_max_id:
+                #    while (next_max_id - step) <= cur_max_id:
+                #        step //= 2
+                #        print(step)
+
+                next_max_id = next_max_id - step
+
+                print('step: %s' % step)
+                print('next check: %s' % next_max_id)
+                print()
+
+            if step <= 1 or next_max_id <= last_live_id:
+                print('break')
+                break
+
+        msg = 'searchig new ids is done:  checked - %s, steps - %s, '\
+              'live - %s, prev max - %s, found max - %s' % (
+                  max_new_id_portion, cnt, (last_live_id - cur_max_id),
+                  cur_max_id, last_live_id)
+        self.log.info(msg)
 
 
     def request_api(self, u):
