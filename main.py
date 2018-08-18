@@ -87,9 +87,8 @@ class GetAccInfo(object):
         saved_max = next_max_id
 
         last_live_id = cur_max_id
-        step = max_new_id_portion // 10
+        step = max_new_id_portion
 
-        flag = False
         cnt = 0
         print(cur_max_id, next_max_id)
         while True:
@@ -97,22 +96,18 @@ class GetAccInfo(object):
             print(cnt)
             url = BASE_URL+'account/info/'\
                            '?application_id='+APP_ID+''\
-                           '&account_id='+str(next_max_id)+''\
+                           '&account_id='+str(int(next_max_id))+''\
                            '&fields=nickname'
             #print(url)
 
             res = self.request_api(url)
+            step /= 2
+
             print(res)
-            if res and res['data'][str(next_max_id)]:
-                if not flag:
-                    step = step - 1
-                    flag = True
+            if res and res['data'][str(int(next_max_id))]:
                 print('==found==: %s' % next_max_id)
 
                 last_live_id = next_max_id
-                #step = step // 2
-                if (next_max_id + step) >= saved_max:
-                    step = step // 2
 
                 next_max_id = next_max_id + step
 
@@ -122,18 +117,6 @@ class GetAccInfo(object):
 
             else:
                 print('not found: %s' % next_max_id)
-                if flag:
-                    step -= 1
-                    flag = False
-
-                if (next_max_id - step) <= last_live_id:
-                    while ((next_max_id - step) <= last_live_id):
-                        step //= 2
-
-                #if (next_max_id - step) <= cur_max_id:
-                #    while (next_max_id - step) <= cur_max_id:
-                #        step //= 2
-                #        print(step)
 
                 next_max_id = next_max_id - step
 
@@ -141,7 +124,8 @@ class GetAccInfo(object):
                 print('next check: %s' % next_max_id)
                 print()
 
-            if step <= 1 or next_max_id <= last_live_id:
+            print('diff: %s' % (next_max_id - last_live_id))
+            if step == 0 or next_max_id <= last_live_id:
                 print('break')
                 break
 
